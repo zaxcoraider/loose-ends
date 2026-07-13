@@ -54,34 +54,12 @@ OpenAI-compatible endpoint, including a self-hosted model, and nothing else chan
 
 ## Architecture
 
+![Loose Ends architecture](./assets/architecture.png)
+
 ```
 message events → extractor (LLM) → SQLite → scheduler → Block Kit nudge → actions
                                                  ↓
                           App Home dashboard · /looseends ask (RTS) · Escalate (MCP)
-```
-
-```
-        ┌─────────────────────────────────────────────┐
-        │              SLACK WORKSPACE                 │
-        │  channels · threads · App Home · slash cmds  │
-        └───────────────┬───────────────▲──────────────┘
-        message events  │               │  nudge cards / dashboard / replies
-                        ▼               │
-        ┌───────────────────────────────┴──────────────┐
-        │           LOOSE ENDS (Bolt for Python)        │
-        │  1. Extractor  ── LLM ──► {type, owner, due}  │
-        │  2. Store (SQLite: loose_ends)                │
-        │  3. Scheduler (APScheduler) ─► overdue/stale  │
-        │  4. Actions: Done / Snooze / Reassign / Escalate
-        │  5. App Home dashboard                        │
-        │  6. /looseends ask ─► RTS ─► grounded answer  │
-        └───────┬───────────────────────────┬───────────┘
-                │ RTS API                    │ MCP
-                ▼                            ▼
-     ┌──────────────────────┐    ┌────────────────────────────┐
-     │ assistant.search      │    │  Loose Ends MCP Server      │
-     │ .context (citations)  │    │  tool: create_ticket()      │
-     └──────────────────────┘    └────────────────────────────┘
 ```
 
 **Failure is designed in.** Every layer degrades instead of breaking:
@@ -159,6 +137,7 @@ scripts/extract_smoke.py  # extractor accuracy check
 scripts/db_smoke.py       # storage smoke test
 scripts/list_ends.py      # dump tracked loose ends
 scripts/make_logo.py      # re-render the app icon (needs `pillow`)
+scripts/make_arch.py      # re-render assets/architecture.png (needs `pillow`)
 ```
 
 ## Brand
