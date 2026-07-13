@@ -155,6 +155,19 @@ def main() -> None:
             print(f"  · {summary!r} already tracked (dedup) — skipped")
             continue
 
+        # Questions go stale on `created_at`, not on the age of the message. A row created
+        # right now is zero hours old, so it can never trip STALE_HOURS and no question card
+        # would ever fire — the Escalate step of the demo would have nothing to click.
+        # Backdate it so the staleness is REAL, not staged: the scheduler applies its normal
+        # rule to a question that genuinely has been sitting unanswered.
+        if le_type == "unanswered_question":
+            stale_at = now - int((config.STALE_HOURS + 2) * HOUR)
+            with db._lock:
+                db._conn.execute(
+                    "UPDATE loose_ends SET created_at = ? WHERE id = ?", (stale_at, row["id"])
+                )
+                db._conn.commit()
+
         when = (
             "no due date"
             if due_offset is None
