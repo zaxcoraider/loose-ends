@@ -22,7 +22,12 @@ from mcp.server.fastmcp import FastMCP
 HOST = os.environ.get("MCP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("MCP_PORT", "8765"))
 TICKETS_FILE = os.path.join(os.path.dirname(__file__), "tickets.json")
-FIRST_TICKET_NUM = 1042  # so the first ticket reads LE-1042, like the demo script
+FIRST_TICKET_NUM = 1
+
+# Base URL of the real tracker this connector writes to. Unset in the demo, because
+# this store is local: we return no URL rather than a link to a host that doesn't exist.
+# Point it at a real Jira/Linear instance and refs become clickable everywhere.
+TICKET_BASE_URL = os.environ.get("TICKET_BASE_URL", "").rstrip("/")
 
 mcp = FastMCP("loose-ends-tickets", host=HOST, port=PORT)
 
@@ -65,7 +70,7 @@ def create_ticket(
     ref = f"LE-{num}"
     ticket = {
         "ref": ref,
-        "url": f"https://tickets.looseends.dev/{ref}",
+        "url": f"{TICKET_BASE_URL}/{ref}" if TICKET_BASE_URL else None,
         "title": title,
         "description": description,
         "assignee": assignee,
@@ -81,7 +86,7 @@ def create_ticket(
 
 @mcp.tool()
 def list_tickets() -> list[dict]:
-    """List all tickets created so far (useful for the demo)."""
+    """List every ticket this connector has created."""
     return _load()["tickets"]
 
 

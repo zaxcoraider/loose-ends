@@ -15,6 +15,12 @@ DGRID_API_KEY = os.environ.get("DGRID_API_KEY", "")
 DGRID_BASE_URL = os.environ.get("DGRID_BASE_URL", "https://api.dgrid.ai/v1")
 DGRID_MODEL = os.environ.get("DGRID_MODEL", "anthropic/claude-sonnet-4.6")
 
+# ── Ticketing ────────────────────────────────────────────────────
+# Base URL of the tracker the MCP connector writes to (e.g. https://your.atlassian.net/browse).
+# Left empty in the demo: the connector stores tickets locally, so we render the ref as
+# plain text rather than linking to a host that doesn't exist.
+TICKET_BASE_URL = os.environ.get("TICKET_BASE_URL", "").rstrip("/")
+
 # ── Tuning ───────────────────────────────────────────────────────
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.6"))
 STALE_HOURS = float(os.environ.get("STALE_HOURS", "4"))

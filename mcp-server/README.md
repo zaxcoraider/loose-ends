@@ -13,7 +13,7 @@ and nothing else in Loose Ends changes. **That decoupling is the whole point of 
 
 | Tool | Args | Returns |
 |---|---|---|
-| `create_ticket` | `title`, `description`, `assignee`, `source_permalink` | ticket `{ref, url, …}` (e.g. `LE-1042`) |
+| `create_ticket` | `title`, `description`, `assignee`, `source_permalink` | ticket `{ref, url, …}` (e.g. `LE-7`) |
 | `list_tickets` | – | all tickets created so far |
 
 ## Run it

@@ -55,11 +55,12 @@ No reaction. **Say:** *"And it ignores the noise. False positives are worse than
 Run:
 
 ```
-/looseends debug-nudge
+/looseends check
 ```
 
-*(This backdates the seeded items so the scheduler fires now instead of in 3 hours.
-In production the APScheduler tick does this on its own every 2 minutes.)*
+*(Runs the same overdue/stale check the scheduler runs on its own every 2 minutes — this
+just does it now instead of waiting for the next tick. The seeded Q3 deck is genuinely
+overdue, so it genuinely fires. Nothing is faked to make this happen.)*
 
 A DM card arrives: **"⏰ Still on the hook — send the Q3 deck · overdue by 3h"**
 with **Done / Snooze / Reassign / Escalate**.
@@ -76,7 +77,7 @@ resolve it, snooze it, or hand it off."*
 On the **unanswered question** card, click **📌 Escalate**.
 
 **Cut to the MCP server terminal** — you'll see the `create_ticket` tool call land.
-Cut back: the card now reads **"📌 Escalated → LE-1044"**, a clickable ticket ref.
+Cut back: the card now reads **"📌 Escalated → `LE-1` · created via the MCP connector"**.
 
 **Say:** *"One click turns a forgotten Slack promise into a tracked ticket — through our
 own open-source MCP server. Swap the mock connector for real Jira or Linear and the Slack
@@ -131,17 +132,17 @@ End on the app name / logo.
 |---|---|
 | MCP server is down → Escalate shows a warning | It's designed to fail soft. Restart terminal A, click again. |
 | RTS returns an error | `/looseends ask` still answers from the DB and *says so* in the footer. Keep going — it's honest, not broken. |
-| A nudge doesn't fire | `/looseends debug-nudge` forces it. |
+| A nudge doesn't fire | `/looseends check` forces it. |
 | Extractor misses a message | Re-post with a clearer commitment ("I'll send X by Friday"). It's tuned conservative on purpose. |
 | Duplicate/ghost behavior | You have two app instances running. Kill all, start ONE. |
 
 ## Do NOT
 
-- **Don't click the `LE-####` ticket link on camera.** `tickets.looseends.dev` is a *mock*
-  domain — the ticket really lives in `mcp-server/tickets.json`. Point at the ref, say
-  "tracked ticket", and cut to the MCP server terminal instead: that shows the real thing
-  happening. Say plainly that the connector is a mock — the `create_ticket` contract is
-  already Jira/Linear-shaped, so swapping it doesn't touch the Slack app.
+- **Say plainly that the ticket store is local.** The ref is deliberately *not* a hyperlink,
+  because this connector writes to `mcp-server/tickets.json`, not a real tracker — a link
+  that 404s would be worse than no link. Set `TICKET_BASE_URL` to a real Jira/Linear
+  instance and the ref becomes clickable everywhere, with no change to the Slack app.
+  Cut to the MCP server terminal: that's the real tool call, and it's the honest proof.
 - Don't run two app instances (dual Socket Mode connections split events).
 - Don't skip the seed step — stale items will nudge you mid-take.
 - Don't show `.env` on screen. **Your tokens are in it.**

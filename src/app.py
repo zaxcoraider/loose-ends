@@ -159,14 +159,19 @@ def on_escalate(ack, body, client, respond):
     )
 
     if not ticket:
+        # Never fail silently. A button that does nothing when you press it is the
+        # worst possible outcome — the user can't tell broken from ignored.
+        msg = ("⚠️ Couldn't reach the ticket service, so nothing was created and "
+               f"*{le['summary']}* is still open. Try Escalate again in a moment.")
         try:
-            respond(
-                response_type="ephemeral",
-                text="⚠️ Couldn't reach the ticket service (MCP server). "
-                     "Is it running? Try Escalate again.",
-            )
-        except Exception:  # noqa: BLE001 — home-tab clicks may lack a response_url
-            pass
+            respond(response_type="ephemeral", text=msg)
+        except Exception:  # noqa: BLE001 — App Home clicks have no response_url
+            try:
+                dm = client.conversations_open(users=body["user"]["id"])
+                client.chat_postMessage(channel=dm["channel"]["id"], text=msg)
+            except Exception as e:  # noqa: BLE001
+                log.warning("couldn't report escalate failure to %s: %s",
+                            body["user"]["id"], e)
         return
 
     le = db.update_status(le_id, "escalated", {"ticket_ref": ticket["ref"]})
@@ -285,22 +290,43 @@ def on_reassign_submit(ack, body, view, client):
 
 
 # ── slash command (debug nudge for Phase 5; full command in Phase 6) ──
+HELP_TEXT = (
+    "🪢 *Loose Ends* — I catch the promises and questions that scroll away.\n\n"
+    "• `/looseends` — everything you're on the hook for\n"
+    "• `/looseends ask <question>` — e.g. _what did I commit to this week?_\n"
+    "• `/looseends check` — run the overdue/stale check right now\n\n"
+    "_Invite me to a channel and I'll start watching. I only flag genuine "
+    "commitments and open questions — never chit-chat._"
+)
+
+
 @app.command("/looseends")
 def handle_command(ack, respond, command, client):
     ack()
     text = (command.get("text") or "").strip()
-    if text == "debug-nudge":
-        n = db.force_all_due(int(time.time() * 1000))
+    verb, _, rest = text.partition(" ")
+    verb = verb.lower()
+    rest = rest.strip()
+
+    if verb == "help":
+        respond(response_type="ephemeral", text=HELP_TEXT)
+        return
+
+    if verb == "check":
+        # Run the scheduler pass on demand. Same code path the timer uses — it nudges
+        # what is genuinely overdue or stale, and nothing else.
         summary = scheduler.run_checks(client)
+        sent = summary["commitments"] + summary["questions"]
         respond(
-            f"🔧 Backdated {n} active item(s). Sent "
-            f"{summary['commitments']} commitment + {summary['questions']} question "
-            f"nudge(s) — check your DMs."
+            response_type="ephemeral",
+            text=(f"✅ Checked. Sent {sent} nudge(s) — take a look at your DMs."
+                  if sent else
+                  "✅ Checked. Nothing is overdue or stale right now."),
         )
         return
 
-    if text.lower().startswith("ask"):
-        question = text[3:].strip()
+    if verb == "ask":
+        question = rest
         if not question:
             respond(
                 response_type="ephemeral",
@@ -321,7 +347,15 @@ def handle_command(ack, respond, command, client):
         )
         return
 
-    # default: show the caller's open items
+    # Anything we don't recognise shouldn't silently do something else.
+    if verb and verb not in ("help", "check", "ask"):
+        respond(
+            response_type="ephemeral",
+            text=f"I don't know `{verb}`.\n\n{HELP_TEXT}",
+        )
+        return
+
+    # bare `/looseends` — show the caller's open items
     respond(
         response_type="ephemeral",
         blocks=home.build_summary_blocks(command["user_id"]),

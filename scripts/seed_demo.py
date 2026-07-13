@@ -8,7 +8,8 @@ Why: a demo must be reproducible take after take. Left alone, the DB accumulates
 old items that nudge you mid-recording and make the dashboard look random.
 
 What it seeds (for the App Home dashboard to look alive from frame one):
-  1. an OVERDUE commitment      -> nudges on the next tick / `debug-nudge`
+  1. an OVERDUE commitment      -> genuinely overdue, so it nudges on the next tick
+                                   (or immediately via `/looseends check`)
   2. an UPCOMING commitment     -> shows the "Upcoming" group
   3. a stale UNANSWERED question-> shows the "Questions" group
 
@@ -146,7 +147,7 @@ def main() -> None:
         print(f"  + [{le_type}] {summary} — {when} — {src}")
 
     print(f"\nseeded into channel {channel}. Open the App Home tab to see the dashboard.")
-    print("Force the nudge on camera with:  /looseends debug-nudge")
+    print("Force the nudge on camera with:  /looseends check")
 
 
 if __name__ == "__main__":

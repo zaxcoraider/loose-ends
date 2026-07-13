@@ -8,7 +8,23 @@ show a confirmation context line. No dead buttons.
 import time
 from datetime import datetime
 
+from . import config
+
 ACTIVE_STATUSES = {"open", "snoozed", "reassigned"}
+
+
+def ticket_note(ref: str | None) -> str:
+    """How an escalated item announces its ticket.
+
+    Only ever renders a link when a real tracker is configured (TICKET_BASE_URL).
+    In the default demo the connector stores tickets locally, so we show the ref as
+    plain text — a dead link that 404s is worse than no link at all.
+    """
+    if not ref:
+        return "📌 Escalated to a ticket"
+    if config.TICKET_BASE_URL:
+        return f"📌 Escalated → <{config.TICKET_BASE_URL}/{ref}|*{ref}*>"
+    return f"📌 Escalated → `{ref}` · created via the MCP connector"
 
 
 def _now_ms() -> int:
@@ -124,13 +140,9 @@ def render_card(loose_end: dict, permalink: str | None = None) -> list[dict]:
         if status == "done":
             note = "✅ Marked done"
         elif status == "escalated":
-            ref = loose_end.get("ticket_ref")
-            if ref:
-                note = f"📌 Escalated → <https://tickets.looseends.dev/{ref}|*{ref}*>"
-            else:
-                note = "📌 Escalated"
+            note = ticket_note(loose_end.get("ticket_ref"))
         else:
-            note = f"Status: {status}"
+            note = "✅ Closed"
         blocks.append(
             {"type": "context", "elements": [{"type": "mrkdwn", "text": note}]}
         )

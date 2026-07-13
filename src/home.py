@@ -56,12 +56,8 @@ def _item_blocks(loose_end: dict, with_buttons: bool = True) -> list[dict]:
             }
         )
     elif loose_end["status"] in DONE_STATUSES:
-        if loose_end["status"] == "done":
-            note = "✅ done"
-        else:
-            ref = loose_end.get("ticket_ref")
-            note = (f"📌 escalated → <https://tickets.looseends.dev/{ref}|{ref}>"
-                    if ref else "📌 escalated")
+        note = ("✅ Done" if loose_end["status"] == "done"
+                else nudge.ticket_note(loose_end.get("ticket_ref")))
         blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": note}]})
     return blocks
 
@@ -85,10 +81,33 @@ def _bucket(user_id: str) -> dict:
     return {"overdue": overdue, "upcoming": upcoming, "questions": questions, "done": done}
 
 
+def _first_run_blocks() -> list[dict]:
+    """What a brand-new user sees. Never show four empty buckets and nothing else."""
+    return [
+        _section("🪢 *Your loose ends*"),
+        _divider(),
+        _section(
+            "*Nothing tracked yet.*\n\n"
+            "Invite me to a channel and I'll start watching for the things that get "
+            "dropped:\n"
+            "• *Commitments* — “I'll send the deck Friday”\n"
+            "• *Unanswered questions* — “who owns the staging deploy?”\n\n"
+            "When one goes overdue or goes stale, I'll DM you privately — never a "
+            "public call-out — with buttons to mark it done, snooze it, hand it off, "
+            "or turn it into a ticket."
+        ),
+        {"type": "context", "elements": [{"type": "mrkdwn", "text":
+            "I stay quiet otherwise. Chit-chat, jokes, and status updates are ignored."}]},
+    ]
+
+
 def build_home_view(user_id: str) -> dict:
     groups = _bucket(user_id)
     open_count = len(groups["overdue"]) + len(groups["upcoming"]) + len(groups["questions"])
     overdue_count = len(groups["overdue"])
+
+    if open_count == 0 and not groups["done"]:
+        return {"type": "home", "blocks": _first_run_blocks()}
 
     blocks: list[dict] = [
         {"type": "section", "text": {"type": "mrkdwn",

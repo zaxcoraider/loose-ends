@@ -141,7 +141,8 @@ Invite the bot to a channel, then say something you'd regret forgetting.
 |---|---|
 | `/looseends` | Your open loose ends |
 | `/looseends ask <question>` | Grounded, cited answer (RTS + your tracked items) |
-| `/looseends debug-nudge` | Force the scheduler to nudge now (demo aid) |
+| `/looseends check` | Run the overdue/stale check right now |
+| `/looseends help` | What I can do |
 
 ### Scripts
 

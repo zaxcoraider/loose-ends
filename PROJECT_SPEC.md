@@ -46,7 +46,7 @@
 | `confidence`    | REAL              | 0..1 from the extractor                                     |
 | `created_at`    | INTEGER           | epoch ms                                                    |
 | `updated_at`    | INTEGER           | epoch ms                                                    |
-| `ticket_ref`    | TEXT (nullable)   | set on escalate, e.g. "LE-1042"                            |
+| `ticket_ref`    | TEXT (nullable)   | set on escalate, e.g. "LE-7"                            |
 | `nudged_at`     | INTEGER (nullable)| epoch ms of last nudge; anti-spam (added in Phase 5)       |
 
 Unique index on `message_ts` to prevent duplicate captures.

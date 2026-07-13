@@ -202,20 +202,5 @@ def list_stale_questions(created_before_ms: int, renudge_cutoff_ms: int) -> list
         return [dict(r) for r in cur.fetchall()]
 
 
-def force_all_due(now_ms: int) -> int:
-    """DEBUG: backdate every active item (both due_at for commitments and
-    created_at for questions) so the next tick nudges it. Returns count."""
-    old = now_ms - 24 * 3600_000  # a day ago — safely past any staleness window
-    with _lock:
-        cur = _conn.execute(
-            f"""UPDATE loose_ends
-                SET due_at = ?, created_at = ?, nudged_at = NULL, updated_at = ?
-                WHERE status IN ({','.join('?' * len(_ACTIVE))})""",
-            (now_ms - 60000, old, now_ms, *_ACTIVE),
-        )
-        _conn.commit()
-        return cur.rowcount
-
-
 # initialize on import so callers never forget
 init_db()
