@@ -1,0 +1,18 @@
+[Unit]
+Description=Loose Ends MCP ticket server (create_ticket)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=looseends
+WorkingDirectory=/opt/looseends/mcp-server
+EnvironmentFile=/opt/looseends/.env
+ExecStart=/opt/looseends/.venv/bin/python -u server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
