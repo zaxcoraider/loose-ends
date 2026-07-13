@@ -36,13 +36,19 @@ muted on day one.
 
 ---
 
-## How it uses the three platform pillars
+## How it uses the Slack platform
 
-| Pillar | How Loose Ends uses it |
+Two of the challenge's required technologies, both load-bearing rather than bolted on:
+
+| Technology | How Loose Ends uses it |
 |---|---|
-| **Slack AI / LLM** | An LLM extractor (`src/llm.py`) classifies every message into commitment / question / noise with a confidence score, and writes the grounded `/ask` answers. |
-| **Real-Time Search (RTS)** | `/looseends ask "what did I commit to this week?"` calls **`assistant.search.context`** to ground the answer in what was *actually said* in the workspace, with permalink citations. |
-| **MCP** | **Escalate** calls our own standalone [MCP server](./mcp-server) (`create_ticket` tool) to turn a forgotten Slack promise into a tracked ticket. Open-sourced in this repo. |
+| **MCP server integration** | **Escalate** calls our own standalone [MCP server](./mcp-server) — we don't just consume an MCP server, we ship one. Its `create_ticket` tool turns a forgotten Slack promise into a tracked ticket. Open-sourced in this repo. |
+| **Real-Time Search API** | `/looseends ask "what did I commit to this week?"` calls **`assistant.search.context`** to ground the answer in what was *actually said* in the workspace, with permalink citations rather than guesses. |
+
+**On the extraction engine:** the classifier in `src/llm.py` runs on Claude via an
+OpenAI-compatible gateway (DGrid) — that's our own engine, not a Slack AI feature, and we
+don't claim it as one. It's a deliberately thin wrapper: repoint `DGRID_BASE_URL` at any
+OpenAI-compatible endpoint, including a self-hosted model, and nothing else changes.
 
 ---
 
