@@ -10,6 +10,11 @@ import threading
 import time
 import uuid
 
+# Importing config is what loads .env. Without this, `LOOSEENDS_DB` is only visible to
+# modules that happen to import config first, so a caller with a different import order
+# silently opens a different database — no error, just the wrong data.
+from . import config  # noqa: F401  (imported for the .env load, not for a name)
+
 DB_PATH = os.environ.get("LOOSEENDS_DB", "loose_ends.sqlite")
 
 _lock = threading.Lock()

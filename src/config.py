@@ -2,7 +2,15 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# One process talks to exactly one workspace — a Socket Mode connection is bound to a
+# single bot token. To run against a different workspace, point ENV_FILE at that
+# workspace's env file rather than editing this one:
+#
+#     ENV_FILE=.env.looseend python -m src.app
+#
+# Give each env file its own LOOSEENDS_DB too, or the two workspaces write their loose
+# ends into the same database and each dashboard shows the other's items.
+load_dotenv(os.environ.get("ENV_FILE", ".env"))
 
 # ── Slack ────────────────────────────────────────────────────────
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")

@@ -10,6 +10,9 @@ env/
 
 # Secrets & local data
 .env
+# every per-workspace env file — these hold live tokens
+.env.*
+!.env.example
 *.sqlite
 *.sqlite3
 *.db
