@@ -132,26 +132,25 @@ def _update_message(client, msg_ctx: dict | None, loose_end: dict) -> None:
         log.warning("card update failed: %s", e)
 
 
-@app.action("le_done")
-def on_done(ack, body, client):
-    ack()
-    le_id = body["actions"][0]["value"]
+def _perform_done(client, user_id: str, le_id: str, msg_ctx: dict | None) -> None:
     le = db.update_status(le_id, "done")
     if le:
-        _update_message(client, _msg_ctx(body), le)
-        home.publish_home(client, body["user"]["id"])
+        _update_message(client, msg_ctx, le)
+        home.publish_home(client, user_id)
 
 
-@app.action("le_escalate")
-def on_escalate(ack, body, client, respond):
-    ack()
-    le_id = body["actions"][0]["value"]
+def _perform_escalate(client, user_id: str, le_id: str, msg_ctx: dict | None,
+                      respond=None) -> None:
+    """Create a ticket via the MCP server and close the loose end.
+
+    Shared by the DM card's button and the dashboard's ⋮ menu, so the two surfaces
+    can never behave differently.
+    """
     le = db.get_by_id(le_id)
     if not le:
         return
     permalink = scheduler._safe_permalink(client, le)
 
-    # Call the open-source Loose Ends MCP server to create a real ticket.
     ticket = mcp_client.create_ticket(
         title=le["summary"],
         description=f"Escalated from a Slack {le['type'].replace('_', ' ')} via Loose Ends.",
@@ -165,21 +164,90 @@ def on_escalate(ack, body, client, respond):
         msg = ("⚠️ Couldn't reach the ticket service, so nothing was created and "
                f"*{le['summary']}* is still open. Try Escalate again in a moment.")
         try:
+            if respond is None:
+                raise RuntimeError("no response_url")
             respond(response_type="ephemeral", text=msg)
-        except Exception:  # noqa: BLE001 — App Home clicks have no response_url
+        except Exception:  # noqa: BLE001 — App Home / modal clicks have no response_url
             try:
-                dm = client.conversations_open(users=body["user"]["id"])
+                dm = client.conversations_open(users=user_id)
                 client.chat_postMessage(channel=dm["channel"]["id"], text=msg)
             except Exception as e:  # noqa: BLE001
-                log.warning("couldn't report escalate failure to %s: %s",
-                            body["user"]["id"], e)
+                log.warning("couldn't report escalate failure to %s: %s", user_id, e)
         return
 
     le = db.update_status(le_id, "escalated", {"ticket_ref": ticket["ref"]})
     if le:
-        _update_message(client, _msg_ctx(body), le)
-        home.publish_home(client, body["user"]["id"])
+        _update_message(client, msg_ctx, le)
+        home.publish_home(client, user_id)
     log.info("escalated %s -> %s", le_id, ticket["ref"])
+
+
+@app.action("le_done")
+def on_done(ack, body, client):
+    ack()
+    _perform_done(client, body["user"]["id"], body["actions"][0]["value"], _msg_ctx(body))
+
+
+@app.action("le_escalate")
+def on_escalate(ack, body, client, respond):
+    ack()
+    _perform_escalate(client, body["user"]["id"], body["actions"][0]["value"],
+                      _msg_ctx(body), respond)
+
+
+# ── the dashboard's ⋮ menu ───────────────────────────────────────
+def _escalate_confirm_modal(private_metadata: str, summary: str) -> dict:
+    """An overflow menu can't carry a per-option confirm dialog, so the irreversible
+    action asks in a modal instead. Escalate files a real ticket; it should never fire
+    on a stray click in a menu."""
+    return {
+        "type": "modal",
+        "callback_id": "le_escalate_confirm",
+        "private_metadata": private_metadata,
+        "title": {"type": "plain_text", "text": "Create a ticket?"},
+        "submit": {"type": "plain_text", "text": "Escalate"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"*{summary}*"}},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text":
+                "This files a tracked ticket through the MCP connector and closes "
+                "this loose end."}]},
+        ],
+    }
+
+
+@app.action("le_menu")
+def on_menu(ack, body, client):
+    """Dispatch the dashboard row menu. Values are '<action>:<loose_end_id>'."""
+    ack()
+    selected = body["actions"][0]["selected_option"]["value"]
+    action, _, le_id = selected.partition(":")
+    user_id = body["user"]["id"]
+    msg_ctx = _msg_ctx(body)
+    pm = json.dumps({"le_id": le_id, "msg": msg_ctx})
+
+    if action == "done":
+        _perform_done(client, user_id, le_id, msg_ctx)
+    elif action == "snooze":
+        client.views_open(trigger_id=body["trigger_id"], view=_snooze_modal(pm))
+    elif action == "reassign":
+        client.views_open(trigger_id=body["trigger_id"], view=_reassign_modal(pm))
+    elif action == "escalate":
+        le = db.get_by_id(le_id)
+        if le:
+            client.views_open(
+                trigger_id=body["trigger_id"],
+                view=_escalate_confirm_modal(pm, le["summary"]),
+            )
+    else:
+        log.warning("unknown menu action: %s", action)
+
+
+@app.view("le_escalate_confirm")
+def on_escalate_confirm(ack, body, view, client):
+    ack()
+    meta = json.loads(view["private_metadata"])
+    _perform_escalate(client, body["user"]["id"], meta["le_id"], meta.get("msg"))
 
 
 # ── App Home controls ────────────────────────────────────────────

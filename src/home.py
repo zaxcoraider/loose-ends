@@ -14,6 +14,21 @@ log = logging.getLogger("looseends.home")
 DONE_STATUSES = {"done", "escalated"}
 RECENT_DONE_LIMIT = 5
 
+# Slack fetches `image` blocks over the public internet, so the banner needs a public URL.
+# This app has no web host and no `files:write` scope, so it's served straight out of the
+# public repo. Regenerate the asset with scripts/make_banner.py.
+BANNER_URL = (
+    "https://raw.githubusercontent.com/zaxcoraider/loose-ends/main/assets/banner.png"
+)
+
+
+def _banner() -> dict:
+    return {
+        "type": "image",
+        "image_url": BANNER_URL,
+        "alt_text": "Loose Ends — the promises that scroll away, caught, tracked, closed",
+    }
+
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
@@ -31,24 +46,51 @@ def _group_header(text: str) -> dict:
     return {"type": "header", "text": {"type": "plain_text", "text": text}}
 
 
+def _menu(le_id: str) -> dict:
+    """The row's actions, folded into a ⋮ menu.
+
+    The dashboard is a LIST. Four buttons per item meant twelve chunky buttons on screen,
+    which reads as a form rather than a product — the density, not the styling, was the
+    problem. The DM nudge card keeps its explicit buttons: it shows one item, and Escalate
+    should stay one click away there.
+    """
+    def opt(text: str, action: str) -> dict:
+        return {
+            "text": {"type": "plain_text", "text": text},
+            "value": f"{action}:{le_id}",
+        }
+
+    return {
+        "type": "overflow",
+        "action_id": "le_menu",
+        "options": [
+            opt("✅  Done", "done"),
+            opt("😴  Snooze", "snooze"),
+            opt("↪  Reassign", "reassign"),
+            opt("📌  Escalate to a ticket", "escalate"),
+        ],
+    }
+
+
 def _item_blocks(loose_end: dict, with_buttons: bool = True) -> list[dict]:
-    """Compact per-item rendering for the dashboard (summary + due + provenance + buttons)."""
+    """One loose end as a compact two-line row: title + due, then provenance."""
     le_id = loose_end["id"]
     line = f"{nudge.urgency_dot(loose_end)}  *{loose_end['summary']}*"
     if loose_end["type"] == "commitment":
         line += f"\n_{nudge.relative_due(loose_end.get('due_at'))}_"
-    blocks: list[dict] = [{"type": "section", "text": {"type": "mrkdwn", "text": line}}]
+
+    section: dict = {"type": "section", "text": {"type": "mrkdwn", "text": line}}
+    if with_buttons and loose_end["status"] in nudge.ACTIVE_STATUSES:
+        section["accessory"] = _menu(le_id)
+    blocks: list[dict] = [section]
 
     trail = nudge.source_context(loose_end)
-    if trail:
-        blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": trail}]})
-
-    if with_buttons and loose_end["status"] in nudge.ACTIVE_STATUSES:
-        blocks.append(nudge.action_row(le_id, f"home_actions_{le_id}"))
-    elif loose_end["status"] in DONE_STATUSES:
+    if loose_end["status"] in DONE_STATUSES:
         note = ("✅ Done" if loose_end["status"] == "done"
                 else nudge.ticket_note(loose_end.get("ticket_ref")))
-        blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": note}]})
+        trail = f"{note} · {trail}" if trail else note
+    if trail:
+        blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": trail}]})
     return blocks
 
 
@@ -79,8 +121,7 @@ def _bucket(user_id: str) -> dict:
 def _first_run_blocks() -> list[dict]:
     """What a brand-new user sees. Never show four empty buckets and nothing else."""
     return [
-        _section("🪢 *Your loose ends*"),
-        _divider(),
+        _banner(),
         _section(
             "*Nothing tracked yet.*\n\n"
             "Invite me to a channel and I'll start watching for the things that get "
@@ -113,7 +154,7 @@ def _hero(open_count: int, overdue_count: int) -> list[dict]:
         mood = "✨"
 
     return [
-        {"type": "header", "text": {"type": "plain_text", "text": "🪢 Loose Ends"}},
+        _banner(),
         {"type": "section", "text": {"type": "mrkdwn", "text": f"{mood}  {headline}"}},
         {
             "type": "actions",
