@@ -96,12 +96,14 @@ def start(app) -> BackgroundScheduler:
     """Start the recurring scheduler. Uses the Bolt app's web client."""
     client = app.client
     sched = BackgroundScheduler(daemon=True)
+    # An interval trigger already waits one full interval before its first run, so there
+    # is nothing to suppress at boot. Passing next_run_time=None here does NOT do that —
+    # it adds the job in a paused state, and the nudges never fire on their own at all.
     sched.add_job(
         lambda: run_checks(client),
         "interval",
         minutes=config.CHECK_INTERVAL_MINUTES,
         id="looseends_checks",
-        next_run_time=None,  # don't fire immediately on boot
     )
     sched.start()
     log.info("scheduler started (every %s min)", config.CHECK_INTERVAL_MINUTES)
