@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Secrets & local data
+.env
+*.sqlite
+*.sqlite3
+*.db
+mcp-server/tickets.json
+
+# Internal build/working notes — not part of the product
+CLAUDE.md
+memory.md
+SUBMISSION.md
+LooseEnds_Build_Plan_and_Prompts.md
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node (mcp-server if ever JS)
+node_modules/

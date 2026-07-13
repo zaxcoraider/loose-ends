@@ -1,0 +1,7 @@
+slack-bolt>=1.20.0
+openai>=1.55.0
+APScheduler>=3.10.4
+python-dotenv>=1.0.1
+python-dateutil>=2.9.0
+mcp>=1.2.0            # MCP client (Escalate) — the server in /mcp-server uses it too
+# stdlib sqlite3 is used for storage (no dependency needed)
