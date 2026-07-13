@@ -14,6 +14,8 @@ try:
 except Exception:
     pass
 
+sys.path.insert(0, ".")  # so running this by path (not -m) still finds `src`
+
 from src import llm  # noqa: E402
 from src import duedate  # noqa: E402
 

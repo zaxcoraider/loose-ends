@@ -117,10 +117,15 @@ actually said in the workspace, with citations. Not a guess."*
 **Say, over the dashboard:**
 
 *"Every team drops balls — not because people don't care, but because promises live in
-chat and chat scrolls away. Loose Ends is the accountability layer: it uses Slack AI to
-understand what was promised, Real-Time Search to ground it in real conversation, and MCP
-to turn it into tracked work. Next: real Jira and Linear connectors, and a Marketplace
-listing so any team can install it."*
+chat and chat scrolls away. Loose Ends is the accountability layer: an LLM extractor to
+understand what was promised, Slack's Real-Time Search to ground it in real conversation,
+and MCP to turn it into tracked work. Next: real Jira and Linear connectors, and a
+Marketplace listing so any team can install it."*
+
+> **Say "an LLM extractor," never "Slack AI."** The classifier is Claude behind an
+> OpenAI-compatible gateway — it is *not* a Slack AI feature, and the README says so. The
+> challenge only requires **one** of the three technologies; you ship **two** (RTS + MCP).
+> You have nothing to gain by overclaiming and a credibility hit if a judge checks.
 
 End on the app name / logo.
 

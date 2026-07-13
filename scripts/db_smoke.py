@@ -11,6 +11,8 @@ try:  # Windows consoles default to cp1252 and choke on emoji
 except Exception:
     pass
 
+sys.path.insert(0, ".")  # so running this by path (not -m) still finds `src`
+
 os.environ["LOOSEENDS_DB"] = "smoke_test.sqlite"  # must be set BEFORE importing db
 
 # clean slate BEFORE importing db (import opens + locks the file on Windows)
