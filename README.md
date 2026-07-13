@@ -1,44 +1,63 @@
-# Loose Ends 🪢
+<div align="center">
 
-**The accountability agent for Slack.** It catches the promises people make in chat
-("I'll send the deck Friday") and the questions that scroll away unanswered — then
-privately nudges the right person, with one click to **Done / Snooze / Reassign /
-Escalate-to-ticket**.
+<img src="assets/banner.png" alt="Loose Ends — the promises that scroll away, caught, tracked, closed" width="820">
 
-Built solo for the **Slack Agent Builder Challenge**.
+<br>
 
----
+**Slack forgets what you promised. Loose Ends doesn't.**
 
-## The problem
+[![License: MIT](https://img.shields.io/badge/License-MIT-FFD166?style=for-the-badge)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.12-4C2A85?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Slack Bolt](https://img.shields.io/badge/Slack-Bolt%20·%20Socket%20Mode-7C5CFF?style=for-the-badge&logo=slack&logoColor=white)](https://slack.dev/bolt-python)
+[![MCP](https://img.shields.io/badge/MCP-we%20ship%20our%20own-7C5CFF?style=for-the-badge)](./mcp-server)
+[![Real-Time Search](https://img.shields.io/badge/Slack-Real--Time%20Search-4C2A85?style=for-the-badge)](#how-it-uses-the-slack-platform)
 
-Work doesn't get dropped because people don't care. It gets dropped because **the promise
-lives in a chat message, and chat scrolls away.** Nobody re-reads Tuesday's thread. The
-deck doesn't get sent, the question never gets answered, and it surfaces a week later as
-"wait, I thought you had that?"
-
-Every team has a task tracker. Almost nothing that gets promised in Slack ever reaches it.
-
-## The solution
-
-Loose Ends watches channel conversations and detects two things:
-
-1. **Commitments** — "I'll send the Q3 deck by EOD", "on it, will fix tonight"
-2. **Unanswered questions** — "who's handling the prod deploy?" with no reply
-
-It stores each as a *loose end*, then a scheduler **privately DMs the owner** when a
-commitment goes overdue or a question goes stale. Never a public call-out. Every nudge is
-a Block Kit card with real actions — including **Escalate**, which creates a tracked
-ticket through an open-source **MCP server**.
-
-**The extractor is deliberately conservative.** "lol same" and "the build is green" are
-ignored. False positives are worse than misses — an agent that nags you about nothing gets
-muted on day one.
+</div>
 
 ---
 
-## How it uses the Slack platform
+## 🪢 In 30 seconds
 
-Two of the challenge's required technologies, both load-bearing rather than bolted on:
+> **You:** "I'll send the Q3 deck by Friday."
+> *Three days later, nobody has the deck.*
+
+Every team drops balls. Not because people don't care — because **the promise lives in a
+chat message, and chat scrolls away.** Nobody re-reads Tuesday's thread.
+
+**Loose Ends is the safety net.** It reads your channels, catches the two things that get
+dropped, and refuses to let them vanish:
+
+| | It catches | Example |
+|---|---|---|
+| 🤝 | **Commitments** | *"I'll send the deck Friday"* · *"on it, will fix tonight"* |
+| ❓ | **Unanswered questions** | *"who's handling the prod deploy?"* — and nobody replied |
+
+Then, when a promise goes overdue or a question goes stale, it **DMs you privately** — never
+a public call-out — with one click to act:
+
+<div align="center">
+
+**✅ Done** · **😴 Snooze** · **↪ Reassign** · **📌 Escalate → a real ticket**
+
+</div>
+
+Escalate files that forgotten promise as a tracked ticket through **our own open-source
+[MCP server](./mcp-server)**. And `/looseends ask "what did I commit to this week?"` answers
+from what was *actually said* in your workspace, with citations.
+
+### 🤫 The hard part isn't catching things. It's shutting up.
+
+*"lol same"* · *"the build is green"* · *"gm everyone"* — **ignored.** All of it.
+
+An agent that nags you about nothing gets muted on day one, so the extractor is tuned so
+that **false positives are worse than misses**. Restraint is the feature.
+
+---
+
+## 🔌 How it uses the Slack platform
+
+The challenge asks for **one** of three required technologies. Loose Ends ships **two** —
+and both are load-bearing, not bolted on:
 
 | Technology | How Loose Ends uses it |
 |---|---|
@@ -46,15 +65,17 @@ Two of the challenge's required technologies, both load-bearing rather than bolt
 | **Real-Time Search API** | `/looseends ask "what did I commit to this week?"` calls **`assistant.search.context`** to ground the answer in what was *actually said* in the workspace, with permalink citations rather than guesses. |
 
 **On the extraction engine:** the classifier in `src/llm.py` runs on Claude via an
-OpenAI-compatible gateway (DGrid) — that's our own engine, not a Slack AI feature, and we
-don't claim it as one. It's a deliberately thin wrapper: repoint `DGRID_BASE_URL` at any
+OpenAI-compatible gateway (DGrid) — that's our own engine, **not a Slack AI feature, and we
+don't claim it as one.** It's a deliberately thin wrapper: repoint `DGRID_BASE_URL` at any
 OpenAI-compatible endpoint, including a self-hosted model, and nothing else changes.
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-![Loose Ends architecture](./assets/architecture.png)
+<div align="center">
+  <img src="assets/architecture.png" alt="Loose Ends architecture" width="900">
+</div>
 
 ```
 message events → extractor (LLM) → SQLite → scheduler → Block Kit nudge → actions
@@ -62,12 +83,20 @@ message events → extractor (LLM) → SQLite → scheduler → Block Kit nudge 
                           App Home dashboard · /looseends ask (RTS) · Escalate (MCP)
 ```
 
-**Failure is designed in.** Every layer degrades instead of breaking:
-RTS unavailable → `/ask` answers from the DB *and says so*. LLM down → a plain tracked
-list. MCP server down → Escalate reports it and the item stays open. The core loop
-(detect → store → nudge → act) needs only the bot token.
+### 🛡️ Failure is designed in
 
-### Files
+Every layer degrades instead of breaking — because a demo that dies on stage is worth
+nothing, and neither is an agent that dies on a Tuesday.
+
+| When this breaks | What actually happens |
+|---|---|
+| 🔎 **RTS unavailable** | `/ask` answers from the database — **and says so in the footer** |
+| 🧠 **LLM gateway down** | You still get a plain tracked list. Nothing is lost |
+| 📌 **MCP server down** | Escalate reports it, and the item stays **open** — never a silent failure |
+
+> The core loop — **detect → store → nudge → act** — needs nothing but the bot token.
+
+### 📁 Files
 
 | File | Role |
 |---|---|
@@ -85,7 +114,7 @@ list. MCP server down → Escalate reports it and the item stays open. The core 
 
 ---
 
-## Quick start
+## 🚀 Quick start
 
 ```bash
 python -m venv .venv
@@ -105,7 +134,7 @@ cd mcp-server && ../.venv/Scripts/python.exe -u server.py    # → 127.0.0.1:876
 
 Invite the bot to a channel, then say something you'd regret forgetting.
 
-### Slack app configuration
+### ⚙️ Slack app configuration
 
 **Bot scopes:** `app_mentions:read`, `channels:history`, `groups:history`, `chat:write`,
 `commands`, `im:write`, `im:history`, `users:read`, `reactions:write`
@@ -119,35 +148,49 @@ Invite the bot to a channel, then say something you'd regret forgetting.
 > command can't use one. Add `search:read.public` under **User** Token Scopes, reinstall,
 > and set `SLACK_USER_TOKEN`. Leave it unset and `/ask` transparently falls back to DB-only.
 
-### Commands
+### 💬 Commands
 
 | Command | Does |
 |---|---|
-| `/looseends` | Your open loose ends |
-| `/looseends ask <question>` | Grounded, cited answer (RTS + your tracked items) |
-| `/looseends check` | Run the overdue/stale check right now |
+| `/looseends` | Everything you're on the hook for |
+| `/looseends ask <question>` | 🔎 Grounded, **cited** answer (RTS + your tracked items) |
+| `/looseends check` | Run the overdue/stale sweep right now |
 | `/looseends help` | What I can do |
 
-### Scripts
+### 🧪 Scripts
 
 ```bash
 scripts/seed_demo.py      # reset to a clean, known demo state
 scripts/rts_smoke.py      # verify the RTS path end to end
-scripts/extract_smoke.py  # extractor accuracy check
+scripts/extract_smoke.py  # extractor accuracy check  → 12/12 on the fixture set
 scripts/db_smoke.py       # storage smoke test
 scripts/list_ends.py      # dump tracked loose ends
-scripts/make_logo.py      # re-render the app icon (needs `pillow`)
-scripts/make_arch.py      # re-render assets/architecture.png (needs `pillow`)
+scripts/make_logo.py      # re-render the app icon    (needs `pillow`)
+scripts/make_arch.py      # re-render the architecture diagram
+scripts/make_banner.py    # re-render the App Home banner
 ```
 
-## Brand
+### ☁️ Run it 24/7
 
-The mark is a loop of thread that never got tied off, trailing to a frayed end —
-`assets/logo.svg`, rendered to `assets/logo-512.png` for the Slack app icon.
+The agent only exists while its process is alive. [`deploy/`](./deploy) puts it on an EC2
+`t4g.micro` (~$6/month) under systemd. Socket Mode is outbound-only and the MCP server binds
+loopback, so the box needs **zero inbound ports** — nothing to attack.
 
 ---
 
-## Data handling & security
+<div align="center">
+  <img src="assets/logo-192.png" alt="Loose Ends" width="88">
+</div>
+
+## 🎨 Brand
+
+The mark is **a loop of thread that never got tied off**, trailing away to a frayed gold
+end — the loose end itself. `assets/logo.svg`, rendered to `assets/logo-512.png` for the
+Slack app icon and composited into `assets/banner.png` for the App Home.
+
+---
+
+## 🔒 Data handling & security
 
 Be able to answer these before you install this anywhere real.
 
@@ -182,18 +225,45 @@ message, so a busy channel costs money.
 
 ---
 
-## What's next
+## 🔮 What's next
 
-- **Real connectors.** The MCP server ships a mock ticket store; the `create_ticket` tool
+- **🎫 Real connectors.** The MCP server ships a mock ticket store; the `create_ticket`
   contract is already the right shape for Jira/Linear. Swapping it doesn't touch the Slack app.
-- **Learning the owner's rhythm** — nudge when someone is actually free, not at 2am.
-- **Marketplace listing** as a drop-in accountability layer for any workspace.
+- **🌙 Learning the owner's rhythm** — nudge when someone is actually free, not at 2am.
+- **🏪 Marketplace listing** as a drop-in accountability layer for any workspace.
+  ([What that actually takes.](./MARKETPLACE.md))
 
-## Stack
+## 🧱 Stack
 
-Bolt for Python (Socket Mode) · LLM extraction via an OpenAI-compatible gateway ·
-stdlib SQLite · APScheduler · Slack Real-Time Search · a standalone open-source
-[MCP server](./mcp-server).
+<div align="center">
 
-See [`PROJECT_SPEC.md`](./PROJECT_SPEC.md) for the data model and scopes,
-[`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md) for the demo run-of-show.
+| Layer | Choice |
+|---|---|
+| 💬 **Slack** | Bolt for Python · Socket Mode · Block Kit |
+| 🧠 **Extraction** | Claude, via an OpenAI-compatible gateway (swappable) |
+| 💾 **Storage** | stdlib SQLite — zero infra |
+| ⏰ **Scheduling** | APScheduler |
+| 📌 **Tickets** | our own [open-source MCP server](./mcp-server) |
+| 🔎 **Grounding** | Slack Real-Time Search (`assistant.search.context`) |
+
+</div>
+
+## 📚 More
+
+| Doc | What's in it |
+|---|---|
+| [`PROJECT_SPEC.md`](./PROJECT_SPEC.md) | Data model, Slack scopes, event subscriptions |
+| [`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md) | The 3-minute demo run-of-show |
+| [`deploy/`](./deploy) | Run it 24/7 on AWS |
+| [`MARKETPLACE.md`](./MARKETPLACE.md) | An honest audit of what a Slack Marketplace listing needs |
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) — do what you like with it.
+
+<div align="center">
+<br>
+<sub>Built solo for the <b>Slack Agent Builder Challenge</b> 🪢</sub>
+</div>
