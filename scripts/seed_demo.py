@@ -92,15 +92,13 @@ def wipe() -> int:
 def main() -> None:
     client = WebClient(token=config.SLACK_BOT_TOKEN)
 
-    removed = wipe()
-    print(f"wiped {removed} existing loose end(s)")
-    if "--wipe" in sys.argv:
-        print("clean slate. (no seed data — capture everything live)")
-        return
-
-    channel = pick_channel(client)
-    if not channel:
-        print("! no channel found — invite the bot to a channel, or pass --channel C…")
+    # Resolve everything we need BEFORE destroying anything. Wiping first and *then*
+    # discovering we have no channel leaves an empty DB and no demo — which is exactly
+    # what happened once, minutes before a take.
+    wipe_only = "--wipe" in sys.argv
+    channel = None if wipe_only else pick_channel(client)
+    if not wipe_only and not channel:
+        print("! no channel found — nothing wiped. Pass --channel C… or set DEMO_CHANNEL in .env")
         return
 
     me = None
@@ -109,15 +107,34 @@ def main() -> None:
     except Exception:  # noqa: BLE001
         pass
 
-    history = recent_messages(client, channel)
+    # Read history BEFORE the wipe as well: a bad channel id must leave the DB untouched,
+    # not empty it and then bail. Everything that can fail, fails while the data is safe.
+    history = [] if wipe_only else recent_messages(client, channel)
+    if not wipe_only and not history and "--force" not in sys.argv:
+        print(
+            f"! read no messages from {channel} — is that channel id right, and is the bot in it?\n"
+            "  Nothing was wiped, nothing seeded — your existing items are untouched.\n"
+            "  Re-run with --force if you really want synthetic timestamps (dead permalinks)."
+        )
+        return
+
+    removed = wipe()
+    print(f"wiped {removed} existing loose end(s)")
+    if wipe_only:
+        print("clean slate. (no seed data — capture everything live)")
+        return
+
     now = _now()
 
-    for summary, le_type, due_offset, keyword in SEEDS:
+    for i, (summary, le_type, due_offset, keyword) in enumerate(SEEDS):
         # Bind to a real message if one matches, so the permalink resolves on camera.
         match = next(
             (m for m in history if keyword in (m.get("text") or "").lower()), None
         )
-        message_ts = match["ts"] if match else f"{(now - DAY) / 1000:.6f}"
+        # `i` keeps synthetic timestamps distinct: message_ts carries a unique index, so
+        # without it every fallback seed collides on the same second and dedup silently
+        # drops all but the first — you'd get 1 card on camera instead of 3.
+        message_ts = match["ts"] if match else f"{(now - DAY) / 1000 + i:.6f}"
         owner = (match.get("user") if match else None) or me
         if not owner:
             print("! couldn't determine an owner (auth_test failed) — skipping")
