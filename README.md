@@ -12,6 +12,12 @@
 [![MCP](https://img.shields.io/badge/MCP-we%20ship%20our%20own-7C5CFF?style=for-the-badge)](./mcp-server)
 [![Real-Time Search](https://img.shields.io/badge/Slack-Real--Time%20Search-4C2A85?style=for-the-badge)](#how-it-uses-the-slack-platform)
 
+<br>
+
+### ▶️ [Watch the 2-minute demo](https://youtu.be/L8skXKj7fLw)
+
+**Judges:** the workspace to open is the **[judging mirror](https://looseends-judging.enterprise.slack.com)** — [here's why there are two](#-two-slack-workspaces--and-which-one-to-open).
+
 </div>
 
 ---
@@ -111,6 +117,50 @@ nothing, and neither is an agent that dies on a Tuesday.
 | `src/ask.py` | `/looseends ask` — grounded, cited answers |
 | `src/mcp_client.py` | Resilient MCP client for Escalate |
 | `mcp-server/` | **Standalone open-source MCP server** (FastMCP) |
+
+---
+
+## 🧭 Two Slack workspaces — and which one to open
+
+**Judges: open the second one.** It is a mirror, running the same code, seeded with the same
+demo state, and it is the only one you can be let into.
+
+| Workspace | Link | What it is |
+|---|---|---|
+| **`looseend`** — original | [e0bg8dum7rd-k5o8cryx.slack.com](https://e0bg8dum7rd-k5o8cryx.slack.com) | Where Loose Ends was built and where the demo video was recorded. **Judges cannot be invited to it** (see below). |
+| **`Loose Ends Judging`** — mirror | [looseends-judging.enterprise.slack.com](https://looseends-judging.enterprise.slack.com) | **The one to open.** Same app, same seeded loose ends. `testing@devpost.com` and `slackhack@salesforce.com` are invited. |
+
+### Why there are two
+
+A Slack developer sandbox is hard-capped at **eight users**, and that cap counts accounts,
+not active ones — deactivating someone does not free a seat.
+
+The original sandbox was provisioned from the **template** option, which ships with *seven
+system-created demo users*. Seven fake users plus the owner is eight. It was full from the
+moment it was created: every invite, as member *or* guest, fails with
+
+> *"You've hit the maximum number of users for this sandbox. To add someone new, remove an existing user first."*
+
+The fix is a second sandbox provisioned **empty** (one user instead of seven), which leaves
+seats free. The app was rebuilt there from [`manifest.yaml`](./manifest.yaml) — one paste, same
+scopes, same events — and re-seeded. Nothing about the agent differs between the two; only the
+guest list does.
+
+The [demo video](https://youtu.be/L8skXKj7fLw) was recorded in the original workspace, which is
+why the permalinks in it point at that domain. The mirror is where you can actually click things.
+
+### Running against either one
+
+One process talks to one workspace — a Socket Mode connection is bound to a single bot token.
+So pick the workspace with an env file rather than editing tokens back and forth:
+
+```bash
+.venv/Scripts/python.exe -u -m src.app                          # .env          → judging mirror
+ENV_FILE=.env.looseend .venv/Scripts/python.exe -u -m src.app   # .env.looseend → original
+```
+
+Give each env file its own `LOOSEENDS_DB`, or both workspaces write their loose ends into the
+same SQLite file and each dashboard shows the other's items.
 
 ---
 
