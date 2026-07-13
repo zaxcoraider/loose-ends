@@ -93,10 +93,15 @@ app doesn't change a line."*
 
 Open the **Loose Ends → Home** tab.
 
-The header states your situation in one line — **"🔴 1 needs you now · 3 open in total"** —
-then Overdue / Upcoming / Unanswered questions / Recently done. Every item carries an
+The banner, then your situation in one line — **"🔴 1 needs you now · 4 open in total"** —
+then Overdue / Upcoming / Unanswered questions / Recently done. Every row carries an
 urgency dot (🔴 overdue, 🟡 due soon, 🟢 on track, 💬 question), the channel it came from,
-and when it was promised. Point out that the item you just escalated has moved to done.
+and when it was promised — with a **⋮ menu** on the right holding the same four actions.
+Point out that the item you just escalated has moved to done.
+
+> The dashboard is a *list*, so the actions fold into a menu; the DM nudge shows *one*
+> item, so its buttons stay out in the open. Worth one line on camera — it's a deliberate
+> density call, not an inconsistency.
 
 Click **🔔 Check now** in the header — it runs the real sweep from the dashboard.
 
