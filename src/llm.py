@@ -190,15 +190,25 @@ def extract_loose_end(text: str, context: str | None = None) -> dict:
     ]
 
     # Try up to twice: an empty/non-JSON reply from the gateway must not silently
-    # drop a real loose end. The retry nudges harder for bare JSON.
+    # drop a real loose end.
+    #
+    # Attempt 1 asks the gateway for JSON mode. This matters: the gateway fronts many
+    # providers, and when it routes to one that doesn't respect the system prompt, the
+    # reply comes back as chat prose ("Got it! Good luck with the client...") and the
+    # loose end is lost. JSON mode makes that structurally impossible.
+    #
+    # Attempt 2 drops JSON mode — a provider that rejects the parameter outright must
+    # still get a plain-prompt shot — and nudges harder for bare JSON instead.
     last_err: Exception | None = None
     for attempt in range(2):
         try:
+            kwargs = {"response_format": {"type": "json_object"}} if attempt == 0 else {}
             resp = _client.chat.completions.create(
                 model=config.DGRID_MODEL,
                 temperature=0,
                 max_tokens=200,
                 messages=messages,
+                **kwargs,
             )
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
