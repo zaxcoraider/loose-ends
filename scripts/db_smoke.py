@@ -1,4 +1,4 @@
-"""Phase 2 smoke test: insert 2 fake loose ends, list them, mark one done, print results.
+"""Smoke test: insert 2 fake loose ends, list them, mark one done, print results.
 
 Run:  .venv/Scripts/python.exe -m scripts.db_smoke
 Uses a throwaway DB file so it never pollutes the real one.

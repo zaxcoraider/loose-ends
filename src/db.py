@@ -40,7 +40,7 @@ def init_db() -> None:
                 created_at     INTEGER NOT NULL,
                 updated_at     INTEGER NOT NULL,
                 ticket_ref     TEXT,
-                nudged_at      INTEGER                 -- epoch ms of last nudge (Phase 5)
+                nudged_at      INTEGER                 -- epoch ms of last nudge (anti-spam)
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_loose_ends_message_ts
                 ON loose_ends(message_ts);

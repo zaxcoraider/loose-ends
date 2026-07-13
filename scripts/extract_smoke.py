@@ -1,4 +1,4 @@
-"""Phase 3 smoke test: run example messages through the extractor + due-date parser.
+"""Smoke test: run example messages through the extractor + due-date parser.
 
 Run:  .venv/Scripts/python.exe -m scripts.extract_smoke
 Eyeball the table: real commitments/questions should flag, noise should NOT.

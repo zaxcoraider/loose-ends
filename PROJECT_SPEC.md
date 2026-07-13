@@ -47,7 +47,7 @@
 | `created_at`    | INTEGER           | epoch ms                                                    |
 | `updated_at`    | INTEGER           | epoch ms                                                    |
 | `ticket_ref`    | TEXT (nullable)   | set on escalate, e.g. "LE-7"                            |
-| `nudged_at`     | INTEGER (nullable)| epoch ms of last nudge; anti-spam (added in Phase 5)       |
+| `nudged_at`     | INTEGER (nullable)| epoch ms of last nudge; anti-spam cooldown                 |
 
 Unique index on `message_ts` to prevent duplicate captures.
 
@@ -89,7 +89,7 @@ App Home **Messages tab enabled** (REQUIRED — the bot DMs nudges; without it
 
 **App-Level Token** scope (manual): `connections:write`.
 
-**RTS (Phase 8, optional):** user token (`xoxp-…`) with `search:read.public`
+**RTS (optional):** user token (`xoxp-…`) with `search:read.public`
 (+ optionally `search:read.im`, `search:read.mpim`, `search:read.private`).
 
 ## Environment variables (`.env`)

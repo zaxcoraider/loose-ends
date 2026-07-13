@@ -1,7 +1,9 @@
 slack-bolt>=1.20.0
-openai>=1.55.0
+slack-sdk>=3.27.0     # imported directly (src/rts.py, scripts) — don't rely on slack-bolt pulling it in
+openai>=1.55.0        # OpenAI-compatible client, pointed at the DGrid gateway
 APScheduler>=3.10.4
 python-dotenv>=1.0.1
 python-dateutil>=2.9.0
 mcp>=1.2.0            # MCP client (Escalate) — the server in /mcp-server uses it too
+pillow>=10.0.0        # only for scripts/make_logo.py (re-renders the app icon)
 # stdlib sqlite3 is used for storage (no dependency needed)

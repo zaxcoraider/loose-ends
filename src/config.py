@@ -8,7 +8,7 @@ load_dotenv()
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
 SLACK_APP_TOKEN = os.environ.get("SLACK_APP_TOKEN", "")
 SLACK_SIGNING_SECRET = os.environ.get("SLACK_SIGNING_SECRET", "")
-SLACK_USER_TOKEN = os.environ.get("SLACK_USER_TOKEN", "")  # optional (RTS, Phase 8)
+SLACK_USER_TOKEN = os.environ.get("SLACK_USER_TOKEN", "")  # optional — Real-Time Search
 
 # ── DGrid (OpenAI-compatible AI gateway) ─────────────────────────
 DGRID_API_KEY = os.environ.get("DGRID_API_KEY", "")

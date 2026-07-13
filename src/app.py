@@ -1,7 +1,8 @@
 """Loose Ends — Bolt for Python app (Socket Mode).
 
-Phase 4: live capture. Channel messages → LLM extractor → SQLite, with a 👀
-reaction on captured messages. @-mention still replies. No nudge scheduler yet.
+Wires everything together: channel messages → LLM extractor → SQLite (with a 👀
+reaction on capture), the Done/Snooze/Reassign/Escalate buttons and their modals,
+the App Home dashboard, and the /looseends command.
 """
 import json
 import logging
@@ -289,7 +290,7 @@ def on_reassign_submit(ack, body, view, client):
     home.publish_home(client, new_owner)
 
 
-# ── slash command (debug nudge for Phase 5; full command in Phase 6) ──
+# ── slash command ────────────────────────────────────────────────
 HELP_TEXT = (
     "🪢 *Loose Ends* — I catch the promises and questions that scroll away.\n\n"
     "• `/looseends` — everything you're on the hook for\n"

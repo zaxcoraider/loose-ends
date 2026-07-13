@@ -1,7 +1,7 @@
 """Block Kit card rendering for Loose Ends nudges.
 
 One state-aware renderer, `render_card(loose_end, permalink)`, used by both the
-scheduler (DM nudges) and App Home (Phase 6). The card always reflects the
+scheduler (DM nudges) and the App Home dashboard. The card always reflects the
 loose end's current status — active items show action buttons, resolved items
 show a confirmation context line. No dead buttons.
 """

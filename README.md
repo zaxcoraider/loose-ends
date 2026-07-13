@@ -162,6 +162,41 @@ The mark is a loop of thread that never got tied off, trailing to a frayed end �
 
 ---
 
+## Data handling & security
+
+Be able to answer these before you install this anywhere real.
+
+**What leaves the workspace.** Every message posted in a channel the bot is invited to
+(longer than a few characters, excluding bot messages) is sent to an **LLM gateway** —
+by default [DGrid](https://dgrid.ai), an OpenAI-compatible endpoint — for classification.
+That is a third party receiving your team's conversations. `src/llm.py` is a deliberately
+thin wrapper: point `DGRID_BASE_URL` at any OpenAI-compatible endpoint, including a
+self-hosted or in-VPC model, and nothing else changes. The bot is only ever in the channels
+you invite it to.
+
+**What's stored.** Loose ends live in a local SQLite file: the summary, owner, channel,
+message timestamp, due date, and status. Message bodies are not stored — only the short
+summary the extractor produces. Nothing is sent anywhere except Slack, the LLM gateway,
+and your MCP connector.
+
+**Real-Time Search runs as the asking user.** `/looseends ask` uses a `xoxp-` user token
+scoped to `search:read.public`, so it can only ever surface messages that user could
+already read. It cannot widen anyone's access.
+
+**The MCP server has no authentication.** It binds `127.0.0.1` and is meant to run beside
+the app. If you change `MCP_HOST`, anyone who can reach the port can create tickets — put
+real auth in front of it first. It warns you on startup if you bind it off-loopback.
+
+**Nudges are private.** The agent DMs the owner. It never posts a public call-out, and it
+never @-mentions someone to shame them into acting.
+
+**Known limits.** A crafted message could try to talk the extractor into creating a bogus
+loose end, or steer an `/ask` answer — the blast radius is a wrong card, and every action
+still needs a human to click. There's no rate limiting: an LLM call fires per qualifying
+message, so a busy channel costs money.
+
+---
+
 ## What's next
 
 - **Real connectors.** The MCP server ships a mock ticket store; the `create_ticket` tool

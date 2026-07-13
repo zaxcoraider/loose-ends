@@ -92,4 +92,11 @@ def list_tickets() -> list[dict]:
 
 if __name__ == "__main__":
     print(f"Loose Ends MCP server on http://{HOST}:{PORT}/mcp  (tool: create_ticket)")
+    if HOST not in ("127.0.0.1", "localhost", "::1"):
+        print(
+            f"  !! WARNING: bound to {HOST}, not loopback.\n"
+            "  !! This server has NO AUTHENTICATION — anyone who can reach this port can\n"
+            "  !! create tickets. Keep it on 127.0.0.1, or put a real auth layer in front\n"
+            "  !! of it before exposing it to a network."
+        )
     mcp.run(transport="streamable-http")
