@@ -183,32 +183,34 @@ def extract_loose_end(text: str, context: str | None = None) -> dict:
     if not text:
         return {**_EMPTY}
 
-    user_content = text if not context else f"Context: {context}\n\nMessage: {text}"
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
+    msg = text if not context else f"Context: {context}\n\nMessage: {text}"
 
-    # Try up to twice: an empty/non-JSON reply from the gateway must not silently
-    # drop a real loose end.
+    # The instructions go in the USER turn, not the system turn.
     #
-    # Attempt 1 asks the gateway for JSON mode. This matters: the gateway fronts many
-    # providers, and when it routes to one that doesn't respect the system prompt, the
-    # reply comes back as chat prose ("Got it! Good luck with the client...") and the
-    # loose end is lost. JSON mode makes that structurally impossible.
+    # This looks odd, and it is deliberate. The gateway fronts many providers, and it
+    # does not reliably honour the system role: when it routes badly, the system prompt
+    # is ignored outright and the model answers the Slack message as if it were being
+    # chatted to — "Got it! I'll save a note so I don't lose track of that." That is not
+    # JSON, so the loose end is dropped silently, which is the worst failure this app
+    # has. Asking for `response_format=json_object` does not help; the gateway ignores
+    # that too.
     #
-    # Attempt 2 drops JSON mode — a provider that rejects the parameter outright must
-    # still get a plain-prompt shot — and nudges harder for bare JSON instead.
+    # Carrying the instructions in the user turn is the one thing the gateway cannot
+    # route around, because it is just message content. Verified against the failure:
+    # the same lines that derailed 100% of the time now classify correctly.
+    prompt = f'{SYSTEM_PROMPT}\n\nMessage to classify:\n"""{msg}"""\n\nJSON:'
+    messages = [{"role": "user", "content": prompt}]
+
+    # Two attempts: a mangled reply must not silently drop a real loose end. `_coerce`
+    # already tolerates ```json fences, which this path routinely returns.
     last_err: Exception | None = None
     for attempt in range(2):
         try:
-            kwargs = {"response_format": {"type": "json_object"}} if attempt == 0 else {}
             resp = _client.chat.completions.create(
                 model=config.DGRID_MODEL,
                 temperature=0,
                 max_tokens=200,
                 messages=messages,
-                **kwargs,
             )
             raw = (resp.choices[0].message.content or "").strip()
             if not raw:
