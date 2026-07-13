@@ -31,6 +31,47 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def slack_date(epoch_ms: int, fmt: str = "{date_short_pretty} at {time}") -> str:
+    """Slack's native date token — renders in each VIEWER's timezone, not the server's.
+
+    A nudge that says "due at 6pm" is wrong for half the team. Slack will localise this
+    for whoever is reading the card; the pipe-suffix is the fallback if it can't.
+    """
+    secs = int(epoch_ms / 1000)
+    fallback = datetime.fromtimestamp(epoch_ms / 1000).strftime("%a %b %d, %I:%M %p")
+    return f"<!date^{secs}^{fmt}|{fallback}>"
+
+
+def urgency_dot(loose_end: dict) -> str:
+    """One glyph carrying the whole status, scannable before any text is read."""
+    if loose_end["type"] == "unanswered_question":
+        return "💬"
+    due = loose_end.get("due_at")
+    if not due:
+        return "⚪"
+    delta_min = (due - _now_ms()) / 60000
+    if delta_min < 0:
+        return "🔴"
+    if delta_min < 120:
+        return "🟡"
+    return "🟢"
+
+
+def source_context(loose_end: dict) -> str:
+    """Where this came from. `<#C…>` renders the channel name with no channels:read scope."""
+    bits = []
+    if loose_end.get("channel_id"):
+        bits.append(f"in <#{loose_end['channel_id']}>")
+    ts = loose_end.get("message_ts")
+    if ts:
+        try:
+            verb = "asked" if loose_end["type"] == "unanswered_question" else "promised"
+            bits.append(f"{verb} {slack_date(int(float(ts) * 1000), '{date_short_pretty}')}")
+        except (TypeError, ValueError):
+            pass
+    return " · ".join(bits)
+
+
 def relative_due(due_at: int | None) -> str:
     """Human phrase for a due timestamp relative to now."""
     if not due_at:
@@ -58,6 +99,57 @@ def _title(loose_end: dict) -> str:
     return "❓ Unanswered question"
 
 
+def action_row(le_id: str, block_id: str) -> dict:
+    """The four actions. One definition, shared by the DM card and the dashboard, so the
+    two surfaces can never drift apart."""
+    return {
+        "type": "actions",
+        "block_id": block_id,
+        "elements": [
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "✅ Done"},
+                "style": "primary",
+                "action_id": "le_done",
+                "value": le_id,
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "😴 Snooze"},
+                "action_id": "le_snooze",
+                "value": le_id,
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "↪ Reassign"},
+                "action_id": "le_reassign",
+                "value": le_id,
+            },
+            {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "📌 Escalate"},
+                "style": "danger",
+                "action_id": "le_escalate",
+                "value": le_id,
+                # Escalate is the one irreversible action: it files a real ticket through
+                # the MCP connector. Confirm it. Accidentally ticketing your teammate's
+                # half-promise is exactly how an accountability bot gets uninstalled.
+                "confirm": {
+                    "title": {"type": "plain_text", "text": "Create a ticket?"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "This files a tracked ticket through the MCP connector "
+                                "and closes this loose end.",
+                    },
+                    "confirm": {"type": "plain_text", "text": "Escalate"},
+                    "deny": {"type": "plain_text", "text": "Cancel"},
+                    "style": "danger",
+                },
+            },
+        ],
+    }
+
+
 def render_card(loose_end: dict, permalink: str | None = None) -> list[dict]:
     """Return Block Kit blocks for a loose end in its current state."""
     le_id = loose_end["id"]
@@ -68,58 +160,24 @@ def render_card(loose_end: dict, permalink: str | None = None) -> list[dict]:
         {"type": "header", "text": {"type": "plain_text", "text": _title(loose_end)}}
     ]
 
-    # main line
-    main = f"*{summary}*"
+    # main line — the urgency dot reads before the words do
+    main = f"{urgency_dot(loose_end)}  *{summary}*"
     if loose_end["type"] == "commitment":
         main += f"\n_{relative_due(loose_end.get('due_at'))}_"
     blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": main}})
 
-    # source link
+    # provenance: which channel, when it was said, and a way back to it
+    trail = source_context(loose_end)
     if permalink:
+        trail = f"{trail} · <{permalink}|↗ jump to message>" if trail else \
+                f"<{permalink}|↗ jump to message>"
+    if trail:
         blocks.append(
-            {
-                "type": "context",
-                "elements": [
-                    {"type": "mrkdwn", "text": f"<{permalink}|↗ Jump to original message>"}
-                ],
-            }
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": trail}]}
         )
 
     if status in ACTIVE_STATUSES:
-        blocks.append(
-            {
-                "type": "actions",
-                "block_id": f"le_actions_{le_id}",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "✅ Done"},
-                        "style": "primary",
-                        "action_id": "le_done",
-                        "value": le_id,
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "😴 Snooze"},
-                        "action_id": "le_snooze",
-                        "value": le_id,
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "↪ Reassign"},
-                        "action_id": "le_reassign",
-                        "value": le_id,
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "📌 Escalate"},
-                        "style": "danger",
-                        "action_id": "le_escalate",
-                        "value": le_id,
-                    },
-                ],
-            }
-        )
+        blocks.append(action_row(le_id, f"le_actions_{le_id}"))
         if status == "snoozed":
             blocks.append(
                 {

@@ -182,6 +182,33 @@ def on_escalate(ack, body, client, respond):
     log.info("escalated %s -> %s", le_id, ticket["ref"])
 
 
+# ── App Home controls ────────────────────────────────────────────
+@app.action("home_refresh")
+def on_home_refresh(ack, body, client):
+    ack()
+    home.publish_home(client, body["user"]["id"])
+
+
+@app.action("home_check")
+def on_home_check(ack, body, client):
+    """Run the real overdue/stale sweep from the dashboard. Same code path as the timer —
+    it nudges what is genuinely due, and nothing else."""
+    ack()
+    user_id = body["user"]["id"]
+    summary = scheduler.run_checks(client)
+    sent = summary["commitments"] + summary["questions"]
+    home.publish_home(client, user_id)
+    try:
+        dm = client.conversations_open(users=user_id)
+        client.chat_postMessage(
+            channel=dm["channel"]["id"],
+            text=(f"✅ Checked — sent {sent} nudge(s)." if sent
+                  else "✅ Checked — nothing is overdue or stale right now."),
+        )
+    except Exception as e:  # noqa: BLE001 — the sweep still ran; only the receipt failed
+        log.warning("couldn't confirm check to %s: %s", user_id, e)
+
+
 # ── snooze (modal) ───────────────────────────────────────────────
 def _snooze_modal(private_metadata: str) -> dict:
     return {

@@ -74,10 +74,14 @@ resolve it, snooze it, or hand it off."*
 
 ## 0:45–1:15 — Escalate = a real action
 
-On the **unanswered question** card, click **📌 Escalate**.
+On the **unanswered question** card, click **📌 Escalate**. A **confirmation dialog** appears
+("Create a ticket?") — click **Escalate** to confirm.
+
+> Don't rush past the dialog. Escalate is the one irreversible action — it files a real
+> ticket — so it *asks first*. That's a UX point worth one sentence on camera.
 
 **Cut to the MCP server terminal** — you'll see the `create_ticket` tool call land.
-Cut back: the card now reads **"📌 Escalated → `LE-1` · created via the MCP connector"**.
+Cut back: the card now reads **"📌 Escalated → `LE-…` · created via the MCP connector"**.
 
 **Say:** *"One click turns a forgotten Slack promise into a tracked ticket — through our
 own open-source MCP server. Swap the mock connector for real Jira or Linear and the Slack
@@ -89,10 +93,18 @@ app doesn't change a line."*
 
 Open the **Loose Ends → Home** tab.
 
-Overdue / Upcoming / Unanswered questions / Recently done — every loose end you own, each
-with the same buttons. Point out the item you just escalated has moved to done.
+The header states your situation in one line — **"🔴 1 needs you now · 3 open in total"** —
+then Overdue / Upcoming / Unanswered questions / Recently done. Every item carries an
+urgency dot (🔴 overdue, 🟡 due soon, 🟢 on track, 💬 question), the channel it came from,
+and when it was promised. Point out that the item you just escalated has moved to done.
 
-**Say:** *"Everything you're on the hook for, in one place."*
+Click **🔔 Check now** in the header — it runs the real sweep from the dashboard.
+
+**Say:** *"Everything you're on the hook for, in one place — sorted by what actually
+deserves the next minute of your attention."*
+
+> The due times use Slack's native date rendering, so they show in *each viewer's*
+> timezone. A nudge that says "due at 6pm" is wrong for half a distributed team.
 
 ---
 

@@ -32,29 +32,19 @@ def _group_header(text: str) -> dict:
 
 
 def _item_blocks(loose_end: dict, with_buttons: bool = True) -> list[dict]:
-    """Compact per-item rendering for the dashboard (summary + due + buttons)."""
+    """Compact per-item rendering for the dashboard (summary + due + provenance + buttons)."""
     le_id = loose_end["id"]
-    line = f"*{loose_end['summary']}*"
+    line = f"{nudge.urgency_dot(loose_end)}  *{loose_end['summary']}*"
     if loose_end["type"] == "commitment":
         line += f"\n_{nudge.relative_due(loose_end.get('due_at'))}_"
     blocks: list[dict] = [{"type": "section", "text": {"type": "mrkdwn", "text": line}}]
+
+    trail = nudge.source_context(loose_end)
+    if trail:
+        blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": trail}]})
+
     if with_buttons and loose_end["status"] in nudge.ACTIVE_STATUSES:
-        blocks.append(
-            {
-                "type": "actions",
-                "block_id": f"home_actions_{le_id}",
-                "elements": [
-                    {"type": "button", "text": {"type": "plain_text", "text": "✅ Done"},
-                     "style": "primary", "action_id": "le_done", "value": le_id},
-                    {"type": "button", "text": {"type": "plain_text", "text": "😴 Snooze"},
-                     "action_id": "le_snooze", "value": le_id},
-                    {"type": "button", "text": {"type": "plain_text", "text": "↪ Reassign"},
-                     "action_id": "le_reassign", "value": le_id},
-                    {"type": "button", "text": {"type": "plain_text", "text": "📌 Escalate"},
-                     "style": "danger", "action_id": "le_escalate", "value": le_id},
-                ],
-            }
-        )
+        blocks.append(nudge.action_row(le_id, f"home_actions_{le_id}"))
     elif loose_end["status"] in DONE_STATUSES:
         note = ("✅ Done" if loose_end["status"] == "done"
                 else nudge.ticket_note(loose_end.get("ticket_ref")))
@@ -77,6 +67,11 @@ def _bucket(user_id: str) -> dict:
                 overdue.append(r)
             else:
                 upcoming.append(r)
+    # Most-overdue first, soonest-due first: the top of the list is always the thing
+    # that most deserves the next minute of your attention.
+    overdue.sort(key=lambda r: r.get("due_at") or 0)
+    upcoming.sort(key=lambda r: r.get("due_at") or 0)
+    done.sort(key=lambda r: r.get("updated_at") or 0, reverse=True)
     done = done[:RECENT_DONE_LIMIT]
     return {"overdue": overdue, "upcoming": upcoming, "questions": questions, "done": done}
 
@@ -101,6 +96,47 @@ def _first_run_blocks() -> list[dict]:
     ]
 
 
+def _hero(open_count: int, overdue_count: int) -> list[dict]:
+    """The top of the dashboard: state in one sentence, then the controls.
+
+    The headline is written to be *read*, not parsed — "1 needs you now" beats
+    "1 overdue" because it says what to do about it.
+    """
+    if overdue_count:
+        headline = f"*{overdue_count} needs you now* · {open_count} open in total"
+        mood = "🔴"
+    elif open_count:
+        headline = f"*Nothing overdue* · {open_count} open, all still on track"
+        mood = "🟢"
+    else:
+        headline = "*You're all caught up.* Nothing is hanging."
+        mood = "✨"
+
+    return [
+        {"type": "header", "text": {"type": "plain_text", "text": "🪢 Loose Ends"}},
+        {"type": "section", "text": {"type": "mrkdwn", "text": f"{mood}  {headline}"}},
+        {
+            "type": "actions",
+            "block_id": "home_controls",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "🔔 Check now"},
+                    "action_id": "home_check",
+                    "value": "check",
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "🔄 Refresh"},
+                    "action_id": "home_refresh",
+                    "value": "refresh",
+                },
+            ],
+        },
+        _divider(),
+    ]
+
+
 def build_home_view(user_id: str) -> dict:
     groups = _bucket(user_id)
     open_count = len(groups["overdue"]) + len(groups["upcoming"]) + len(groups["questions"])
@@ -109,12 +145,7 @@ def build_home_view(user_id: str) -> dict:
     if open_count == 0 and not groups["done"]:
         return {"type": "home", "blocks": _first_run_blocks()}
 
-    blocks: list[dict] = [
-        {"type": "section", "text": {"type": "mrkdwn",
-         "text": f"🪢 *Your loose ends*\nYou have *{open_count}* open · "
-                 f"*{overdue_count}* overdue"}},
-        _divider(),
-    ]
+    blocks: list[dict] = _hero(open_count, overdue_count)
 
     def add_group(title: str, items: list[dict], empty: str):
         blocks.append(_group_header(title))
