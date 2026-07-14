@@ -7,7 +7,12 @@ Wants=network-online.target
 Type=simple
 User=looseends
 WorkingDirectory=/opt/looseends/mcp-server
-EnvironmentFile=/opt/looseends/.env
+
+# The ticket server holds no Slack or LLM credentials — it needs nothing but a port, and it
+# is shared by every workspace, so it deliberately does not read any workspace's env file.
+# The leading "-" keeps it starting when this optional override is absent (it usually is).
+EnvironmentFile=-/opt/looseends/env/mcp.env
+
 ExecStart=/opt/looseends/.venv/bin/python -u server.py
 Restart=always
 RestartSec=5

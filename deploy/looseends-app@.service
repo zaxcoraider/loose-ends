@@ -1,0 +1,34 @@
+[Unit]
+# A systemd *template*: one instance per Slack workspace.
+#   systemctl start looseends-app@judging     → env/judging.env
+#   systemctl start looseends-app@looseend    → env/looseend.env
+Description=Loose Ends — Slack agent (%i workspace)
+After=network-online.target looseends-mcp.service
+Wants=network-online.target
+Requires=looseends-mcp.service
+
+[Service]
+Type=simple
+User=looseends
+WorkingDirectory=/opt/looseends
+
+# src/config.py loads ENV_FILE itself; systemd injects the same file so the process env and
+# dotenv agree. Environment= is listed first so the file wins on any key it also sets.
+Environment=ENV_FILE=/opt/looseends/env/%i.env
+EnvironmentFile=/opt/looseends/env/%i.env
+
+ExecStart=/opt/looseends/.venv/bin/python -u -m src.app
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# ONE process per workspace, ever. Two Socket Mode connections sharing a bot token split
+# events between them: half the nudges vanish and buttons fire twice. Two *different*
+# workspaces are two different bot tokens and do not collide — that is the whole reason
+# this is a template instead of one service. Each env file must set its own LOOSEENDS_DB,
+# or both workspaces write into one database and each dashboard shows the other's items.
+# Never put this behind an autoscaling group.
+
+[Install]
+WantedBy=multi-user.target

@@ -222,8 +222,11 @@ scripts/make_banner.py    # re-render the App Home banner
 
 ### ☁️ Run it 24/7
 
-The agent only exists while its process is alive. [`deploy/`](./deploy) puts it on an EC2
-`t4g.micro` (~$6/month) under systemd. Socket Mode is outbound-only and the MCP server binds
+The agent only exists while its process is alive — a judge who opens the App Home to a dead
+tab sees nothing. [`deploy/`](./deploy) puts it on an EC2 `t4g.micro` (~$6/month) under
+systemd, running **both workspaces off one box**: a shared MCP ticket server plus one app
+process per workspace (`looseends-app@judging`, `looseends-app@looseend`), each with its own
+bot token and its own database. Socket Mode is outbound-only and the MCP server binds
 loopback, so the box needs **zero inbound ports** — nothing to attack.
 
 ---
